@@ -1,10 +1,6 @@
 import re
 from dataclasses import dataclass
-from io import BytesIO
 from typing import List, Optional
-
-import pytesseract
-from PIL import Image
 
 WORDLE_REGEX = re.compile(
     r"^Wordle\s+(?P<puzzle>\d+)\s+(?P<score>[0-6Xx])/6(?P<hard>\*?)",
@@ -116,16 +112,3 @@ def parse_daily_summary(content: str) -> List[DailySummaryEntry]:
         if not added:
             continue
     return entries
-
-
-def parse_wordle_image(image_bytes: bytes) -> Optional[WordleResult]:
-    """Run OCR on an image and parse a Wordle result from it."""
-
-    try:
-        with Image.open(BytesIO(image_bytes)) as img:
-            grayscale = img.convert("L")
-            text = pytesseract.image_to_string(grayscale)
-    except OSError:
-        return None
-
-    return parse_wordle_message(text)

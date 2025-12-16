@@ -4,7 +4,7 @@ Python Discord bot that listens to a dedicated Wordle results channel, parses th
 
 ### Features
 
-- Auto-detects official Wordle share messages (text or screenshots) that are posted in the configured channel.
+- Auto-detects official Wordle share messages posted in the configured channel.
 - Records wins, losses, total attempts, and per-guess distribution for each player.
 - `!wordle_stats [@member]` shows a personal stat card with win rate and guess distribution.
 - `!wordle_leaderboard` displays the top performers ordered by win rate and average attempts.
@@ -14,7 +14,6 @@ Python Discord bot that listens to a dedicated Wordle results channel, parses th
 ### Requirements
 
 - Python 3.10+
-- Tesseract OCR installed and accessible on `PATH` (already included in the Docker image).
 - A Discord bot token with the `MESSAGE CONTENT INTENT` enabled.
 - The numeric ID of the Wordle channel in your server.
 - Bot role permissions: Read Messages, Send Messages, Read Message History (for backfill).
@@ -72,10 +71,13 @@ docker run --rm \\
 
 The `DATA_PATH` inside the container should point to `/app/data/wordle_stats.json` (default) so the volume stores your stats outside the container. Attach the container to a process manager or orchestration platform for continuous hosting.
 
+### Published images
+
+The GitHub Actions workflow builds the container image on every push and publishes it to both GitHub Container Registry (`ghcr.io/<github-owner>/wordler-bot`) and Docker Hub (`docker.io/<dockerhub-username>/wordler-bot`). Commits are tagged with their SHA, and pushes to `main` also refresh the `latest` tag. To enable the Docker Hub publish step, add repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a Docker Hub access token or password) in your GitHub project settings.
+
 ### Notes
 
 - Only messages in the configured channel are parsed.
 - Duplicate posts for the same puzzle are counted separately; delete the original message if you need to remove a result.
 - The JSON store (`DATA_PATH`) can be backed up or edited manually if needed.
 - Use `!wordle_backfill 500` (or another limit) in the Wordle channel to import historical results after first installing the bot.
-- Screenshot parsing relies on Tesseract OCR; install it locally if you are not using the provided Docker image.

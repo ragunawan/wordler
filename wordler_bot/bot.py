@@ -6,7 +6,7 @@ import discord
 from discord.ext import commands, tasks
 
 from .config import BotSettings, SettingsError
-from .parser import DailySummaryEntry, WordleResult, parse_daily_summary, parse_wordle_image, parse_wordle_message
+from .parser import DailySummaryEntry, WordleResult, parse_daily_summary, parse_wordle_message
 from .stats import StatsManager, UserSummary
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -158,26 +158,7 @@ def create_bot(settings: BotSettings, stats_manager: StatsManager) -> commands.B
 
         result = parse_wordle_message(message.content)
         if not result:
-            for attachment in message.attachments:
-                if attachment.size > 6 * 1024 * 1024:
-                    continue
-                content_type = attachment.content_type or ""
-                if attachment.filename and not content_type and attachment.filename.lower().endswith(
-                    (".png", ".jpg", ".jpeg", ".webp")
-                ):
-                    content_type = "image/unknown"
-                if not content_type.startswith("image/"):
-                    continue
-                try:
-                    payload = await attachment.read()
-                except discord.DiscordException as exc:
-                    logger.warning("Failed to read attachment %s: %s", attachment.id, exc)
-                    continue
-                result = parse_wordle_image(payload)
-                if result:
-                    break
-            if not result:
-                return
+            return
 
         await stats_manager.record_result(message.author, result, message_id=message.id)
 
