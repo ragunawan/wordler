@@ -255,7 +255,6 @@ def create_bot(settings: BotSettings, stats_manager: StatsManager) -> commands.B
         async def before_daily_leaderboard():
             await bot.wait_until_ready()
 
-        nonlocal daily_leaderboard_task
         daily_leaderboard_task = daily_leaderboard
 
     return bot
