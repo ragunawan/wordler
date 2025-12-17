@@ -54,9 +54,13 @@ def create_bot(settings: BotSettings, stats_manager: StatsManager) -> commands.B
 
     bot = commands.Bot(command_prefix=settings.command_prefix, intents=intents)
 
+    daily_leaderboard_task: tasks.Loop | None = None
+
     @bot.event
     async def on_ready():
         logger.info("Logged in as %s (id=%s)", bot.user, getattr(bot.user, "id", "n/a"))
+        if daily_leaderboard_task and not daily_leaderboard_task.is_running():
+            daily_leaderboard_task.start()
 
     async def process_daily_summary(message: discord.Message) -> tuple[bool, int, int]:
         entries: list[DailySummaryEntry] = parse_daily_summary(message.content)
@@ -251,7 +255,8 @@ def create_bot(settings: BotSettings, stats_manager: StatsManager) -> commands.B
         async def before_daily_leaderboard():
             await bot.wait_until_ready()
 
-        daily_leaderboard.start()
+        nonlocal daily_leaderboard_task
+        daily_leaderboard_task = daily_leaderboard
 
     return bot
 
