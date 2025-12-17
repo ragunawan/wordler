@@ -27,15 +27,17 @@ def build_leaderboard_embed(entries: list[UserSummary]) -> discord.Embed:
             return name
         return name[: limit - 3] + "..."
 
-    header = f"{'#':>2} {'Player':<18} {'Avg':>6} {'Wins':>6} {'Games':>7} {'Win%':>7}"
-    divider = "-" * len(header)
+    header = f"{'#':>2} {'Player':<18} {'Avg':>6} {'Wins':>6} {'Win%':>6}"
+    divider = "=" * len(header)
     lines = [header, divider]
     for index, entry in enumerate(entries, start=1):
         avg = f"{entry.average_attempts:.2f}" if entry.average_attempts is not None else "n/a"
-        win_pct = f"{entry.win_rate * 100:.1f}"
+        win_pct = f"{entry.win_rate * 100:.0f}"
         lines.append(
-            f"{index:>2} {shorten(entry.display_name):<18} {avg:>6} {entry.wins:>6} {entry.games_played:>7} {win_pct:>7}"
+            f"{index:>2} {shorten(entry.display_name):<18} {avg:>6} {entry.wins:>6} {win_pct:>6}"
         )
+        if index == 3 and len(entries) > 3:
+            lines.append("-" * len(header))
     table = "\n".join(lines)
     embed = discord.Embed(
         title="Wordle Leaderboard",

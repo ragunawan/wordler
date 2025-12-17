@@ -137,9 +137,9 @@ class StatsManager:
 
         entries.sort(
             key=lambda item: (
-                -item.win_rate,
                 item.average_attempts if item.average_attempts is not None else 99,
                 -item.wins,
+                -item.win_rate,
                 item.display_name.lower(),
             )
         )
