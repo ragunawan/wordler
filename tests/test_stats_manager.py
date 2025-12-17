@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from wordler_bot.stats import StatsManager
@@ -66,3 +68,10 @@ def test_leaderboard_breaks_full_ties_with_name(stats_manager):
     leaderboard = stats_manager.leaderboard()
 
     assert [entry.display_name for entry in leaderboard] == ["Alpha", "Beta"]
+
+
+def test_leaderboard_snapshot_round_trip(stats_manager):
+    snapshot = ["1", "3", "2"]
+    asyncio.run(stats_manager.update_leaderboard_snapshot(snapshot))
+
+    assert stats_manager.get_leaderboard_snapshot() == snapshot

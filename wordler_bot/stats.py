@@ -32,6 +32,7 @@ class StatsManager:
         self.data_path = data_path
         self._stats: Dict[str, Dict] = {}
         self._processed_messages: set[str] = set()
+        self._leaderboard_snapshot: List[str] = []
         self._lock = asyncio.Lock()
 
     def load(self) -> None:
@@ -63,10 +64,16 @@ class StatsManager:
                     self._processed_messages = {str(item) for item in processed}
                 else:
                     self._processed_messages = set()
+                snapshot = payload.get("leaderboard_snapshot")
+                if isinstance(snapshot, list):
+                    self._leaderboard_snapshot = [str(item) for item in snapshot]
+                else:
+                    self._leaderboard_snapshot = []
         except json.JSONDecodeError:
             logger.exception("Failed to parse stats file %s, resetting store", self.data_path)
             self._stats = {}
             self._processed_messages = set()
+            self._leaderboard_snapshot = []
 
     async def record_result(
         self,
@@ -145,6 +152,14 @@ class StatsManager:
         )
         return entries[:limit]
 
+    def get_leaderboard_snapshot(self) -> List[str]:
+        return list(self._leaderboard_snapshot)
+
+    async def update_leaderboard_snapshot(self, user_ids: List[str]) -> None:
+        async with self._lock:
+            self._leaderboard_snapshot = list(user_ids)
+            self._persist_locked()
+
     def _make_summary(self, user_id: str, stats: Dict) -> UserSummary:
         games_played = stats.get("games_played", 0)
         wins = stats.get("wins", 0)
@@ -171,6 +186,7 @@ class StatsManager:
         payload = {
             "users": self._stats,
             "processed_messages": sorted(self._processed_messages),
+            "leaderboard_snapshot": self._leaderboard_snapshot,
             "updated_at": datetime.now(tz=timezone.utc).isoformat(),
         }
         tmp_path = self.data_path.with_suffix(".tmp")

@@ -21,7 +21,7 @@ def format_distribution(summary: UserSummary) -> str:
     return " | ".join(parts)
 
 
-def build_leaderboard_embed(entries: list[UserSummary]) -> discord.Embed:
+def build_leaderboard_embed(entries: list[UserSummary], previous_ranks: dict[str, int] | None = None) -> discord.Embed:
     def shorten(name: str, limit: int = 18) -> str:
         if len(name) <= limit:
             return name
@@ -30,11 +30,19 @@ def build_leaderboard_embed(entries: list[UserSummary]) -> discord.Embed:
     header = f"{'#':>2} {'Player':<18} {'Avg':>6} {'Wins':>6} {'Win%':>6}"
     divider = "=" * len(header)
     lines = [header, divider]
+    previous_ranks = previous_ranks or {}
     for index, entry in enumerate(entries, start=1):
         avg = f"{entry.average_attempts:.2f}" if entry.average_attempts is not None else "n/a"
         win_pct = f"{entry.win_rate * 100:.0f}"
+        indicator = ""
+        previous = previous_ranks.get(entry.user_id)
+        if previous is not None:
+            if previous > index:
+                indicator = "⬆️ "
+            elif previous < index:
+                indicator = "⬇️ "
         lines.append(
-            f"{index:>2} {shorten(entry.display_name):<18} {avg:>6} {entry.wins:>6} {win_pct:>6}"
+            f"{indicator}{index:>2} {shorten(entry.display_name):<18} {avg:>6} {entry.wins:>6} {win_pct:>6}"
         )
         if index == 3 and len(entries) > 3:
             lines.append("-" * len(header))
@@ -200,13 +208,21 @@ def create_bot(settings: BotSettings, stats_manager: StatsManager) -> commands.B
     async def wordle_leaderboard(ctx: commands.Context):
         await send_leaderboard_embed(ctx.channel)
 
-    async def send_leaderboard_embed(channel: discord.abc.Messageable):
+    async def send_leaderboard_embed(
+        channel: discord.abc.Messageable, *, update_snapshot: bool = False
+    ):
         entries = stats_manager.leaderboard(limit=settings.leaderboard_size)
         if not entries:
             await channel.send("No Wordle games recorded yet.")
             return
-        embed = build_leaderboard_embed(entries)
+        previous_positions = {
+            user_id: rank
+            for rank, user_id in enumerate(stats_manager.get_leaderboard_snapshot(), start=1)
+        }
+        embed = build_leaderboard_embed(entries, previous_positions)
         await channel.send(embed=embed)
+        if update_snapshot:
+            await stats_manager.update_leaderboard_snapshot([entry.user_id for entry in entries])
 
     @bot.command(name="wordle_backfill")
     @commands.check(is_wordle_channel)
@@ -249,7 +265,7 @@ def create_bot(settings: BotSettings, stats_manager: StatsManager) -> commands.B
                 except discord.DiscordException as exc:
                     logger.warning("Could not fetch leaderboard channel %s: %s", leaderboard_channel_id, exc)
                     return
-            await send_leaderboard_embed(channel)
+            await send_leaderboard_embed(channel, update_snapshot=True)
 
         @daily_leaderboard.before_loop
         async def before_daily_leaderboard():
